@@ -14,4 +14,5 @@ public class UserProfileDTO
     public IdentityUser IdentityUser { get; set; }
     public List<ChoreCompletionDTO> ChoreCompletions { get; set; }
     public List<ChoreAssignmentDTO> ChoreAssignments { get; set; }
+    public List<string> Roles { get; set; }
 }
