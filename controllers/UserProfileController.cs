@@ -1,11 +1,13 @@
 
 using HouseRules.Data;
+using HouseRules.Models;
 using HouseRules.Models.DTOS;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 
 namespace HouseRules.Controllers;
 
@@ -39,8 +41,63 @@ public class UserProfileController : ControllerBase
         .ToList());
     }
 
+    [HttpGet("{id}")]
+    [Authorize]
+    public IActionResult GetUserProfile(int id)
+    {
+        UserProfile? user = _dbContext.UserProfiles
+        .Include(u => u.ChoreAssignments)
+            .ThenInclude(ca => ca.Chore)
+        .Include(u => u.ChoreCompletions)
+            .ThenInclude(cc => cc.Chore)
+        .FirstOrDefault(u => u.Id == id);
+
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(new UserProfileDTO
+        {
+            Id = user.Id,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Address = user.Address,
+            UserName = user.UserName,
+            Email = user.Email,
+            IdentityUserId = user.IdentityUserId,
+            ChoreAssignments = user.ChoreAssignments.Select(ca => new ChoreAssignmentDTO
+            {
+                Id = ca.Id,
+                UserProfileId = ca.UserProfileId,
+                ChoreId = ca.ChoreId,
+                Chore = new ChoreDTO
+                {
+                    Id = ca.Chore.Id,
+                    Name = ca.Chore.Name,
+                    Difficulty = ca.Chore.Difficulty,
+                    ChoreFrequencyDays = ca.Chore.ChoreFrequencyDays
+                }
+            }).ToList(),
+            ChoreCompletions = user.ChoreCompletions.Select(c => new ChoreCompletionDTO
+            {
+                Id = c.Id,
+                ChoreId = c.ChoreId,
+                Chore = new ChoreDTO
+                {
+                    Id = c.Chore.Id,
+                    Name = c.Chore.Name,
+                    Difficulty = c.Chore.Difficulty,
+                    ChoreFrequencyDays = c.Chore.ChoreFrequencyDays
+                }
+            }).ToList()
+        });
+
+
+    }
+
     [HttpGet("withroles")]
-    // [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin")]
     public IActionResult GetWithRoles()
     {
         return Ok(_dbContext.UserProfiles
@@ -82,7 +139,7 @@ public class UserProfileController : ControllerBase
             _dbContext.SaveChanges();
             return NoContent();
         }
-        return NotFound()
+        return NotFound();
     }
 
     [HttpPost("demote/{id}")]

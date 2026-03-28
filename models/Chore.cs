@@ -7,4 +7,7 @@ public class Chore
     public int Difficulty { get; set; }
     public int ChoreFrequencyDays { get; set; }
 
+    // Nav
+    public List<ChoreAssignment> ChoreAssignments { get; set; }
+    public List<ChoreCompletion> ChoreCompletions { get; set; }
 }
