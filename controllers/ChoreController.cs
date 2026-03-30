@@ -2,6 +2,7 @@ using HouseRules.Data;
 using HouseRules.Models;
 using HouseRules.Models.DTOS;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,7 +20,7 @@ public class ChoreController : ControllerBase
 
 
     [HttpGet]
-    [Authorize]
+    // [Authorize]
     public IActionResult Get()
     {
 
@@ -33,7 +34,7 @@ public class ChoreController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    [Authorize]
+    // [Authorize]
     public IActionResult GetSingleChore(int id)
     {
         Chore? chore = _dbContext.Chores
@@ -79,8 +80,8 @@ public class ChoreController : ControllerBase
         });
     }
 
+    // [Authorize]
     [HttpPost("{id}/complete")]
-    [Authorize]
     public IActionResult CompleteChore(int id, int userId)
     {
         ChoreCompletion? chore = _dbContext.ChoreCompletions.FirstOrDefault(c => c.ChoreId == id);
@@ -97,4 +98,84 @@ public class ChoreController : ControllerBase
 
         return NoContent();
     }
+
+    // [Authorize(Roles = "Admin")]
+    [HttpPost()]
+    public IActionResult NewChore(Chore chore)
+    {
+
+        _dbContext.Chores.Add(chore);
+        _dbContext.SaveChanges();
+
+        return Created($"/chore/{chore.Id}", chore);
+    }
+
+    [HttpPut("{id}")]
+    // [Authorize(Roles = "Admin")]
+    public IActionResult UpdateChore(int id, ChoreUpdateDTO chore)
+    {
+        // Could make a ChoreUpdateDTO to ensure only parts i want to update are updated
+        Chore? choreToUpdate = _dbContext.Chores.FirstOrDefault(c => c.Id == id);
+
+        if (choreToUpdate == null)
+        {
+            return NotFound();
+        }
+
+        _dbContext.Entry(choreToUpdate).CurrentValues.SetValues(chore);
+
+        _dbContext.SaveChanges();
+
+        return Ok(choreToUpdate);
+    }
+
+    [HttpDelete("{id}")]
+    // [Authorize(Roles = "Admin")]
+    public IActionResult DeleteChore(int id)
+    {
+        Chore? chore = _dbContext.Chores.FirstOrDefault(c => c.Id == id);
+
+        if (chore == null)
+        {
+            return NotFound();
+        }
+
+        _dbContext.Chores.Remove(chore);
+        _dbContext.SaveChanges();
+
+        return NoContent();
+    }
+
+    [HttpPost("{id}/assign")]
+    // [Authorize(Roles = "Admin")]
+    public IActionResult AssignChore(int id, int userId)
+    {
+        /* Assign a user to a chore */
+        ChoreAssignment choreAssignment = new ChoreAssignment
+        {
+            ChoreId = id,
+            UserProfileId = userId
+        };
+
+        _dbContext.ChoreAssignments.Add(choreAssignment);
+        _dbContext.SaveChanges();
+        return NoContent();
+
+    }
+
+    [HttpPost("{id}/unassign")]
+    // [Authorize(Roles = "Admin")]
+    public IActionResult UnassignChore(int id, int userId)
+    {
+        ChoreAssignment? choreAssignment = _dbContext.ChoreAssignments.FirstOrDefault(ca => ca.ChoreId == id && ca.UserProfileId == userId);
+        if (choreAssignment == null)
+        {
+            return NotFound();
+        }
+        _dbContext.ChoreAssignments.Remove(choreAssignment);
+        _dbContext.SaveChanges();
+
+        return NoContent();
+    }
+
 }
